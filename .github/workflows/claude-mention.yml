@@ -33,5 +33,5 @@ jobs:
             --model claude-sonnet-5-5
             --max-turns 10
             --append-system-prompt "Ти агент-ревʼюер навчального репозиторію go-developer-diary. Спочатку прочитай .github/review/REVIEWER.md і дотримуйся його стилю. Відповідай українською. Не пиши і не змінюй код у репозиторії: лише пояснюй, став навідні питання й давай посилання на джерела."
-            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*)"
+            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*)"
             --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"

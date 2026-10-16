@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: read
       id-token: write
     steps:
       - uses: actions/checkout@v6
@@ -55,7 +56,9 @@ jobs:
             навчальний стиль ревʼю, мова відповіді (українська).
 
             Гілка PR уже в поточному каталозі. Деталі PR бери через
-            `gh pr view` і `gh pr diff`.
+            `gh pr view` і `gh pr diff`. Задачу, яку закриває PR
+            (`Closes #N`), прочитай через `gh issue view N`: звідти беруться
+            мета, питання на ревʼю і Definition of Done.
 
             Загальний підсумок публікуй одним коментарем через
             `gh pr comment`. Конкретні зауваження до рядків коду
@@ -66,4 +69,4 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --max-turns 15
-            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(go build:*),Bash(go vet:*),Bash(go test:*),Bash(gofmt:*)"
+            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh issue view:*),Bash(go build:*),Bash(go vet:*),Bash(go test:*),Bash(gofmt:*)"
