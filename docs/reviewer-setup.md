@@ -17,6 +17,28 @@
 
 Щоб змінити поведінку ревʼюера, правиш `REVIEWER.md`, а не workflow.
 
+## Copilot як перший ревʼюер
+
+Поруч із Claude працює GitHub Copilot code review (входить у підписку Copilot).
+Він швидко ловить дрібні помилки, а Claude відповідає за DoD, перевірки й
+навчальні питання.
+
+| Файл | Призначення |
+|---|---|
+| `.github/copilot-instructions.md` | Загальні правила для Copilot |
+| `.github/instructions/*.instructions.md` | Правила для окремих шляхів (`applyTo`): Go, тести, щоденник |
+
+Увімкнення (вручну, у веб-інтерфейсі):
+
+1. Settings репозиторію → Rules → Rulesets → New branch ruleset, ціль `main`.
+2. Увімкни «Automatically request Copilot code review». Опційно: review draft
+   pull requests (лишай вимкненим, щоб ревʼю йшло лише для Ready for review)
+   і review new pushes.
+3. Або вручну: на PR відкрий Reviewers → Copilot.
+
+Copilot читає інструкції з гілки PR, тому зміни правил можна перевірити в тому
+самому PR. Він лише коментує: схвалити чи заблокувати PR не може.
+
 ## Одноразове налаштування
 
 1. Встанови Claude GitHub App для репозиторію (https://github.com/apps/claude)
