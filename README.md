@@ -1,134 +1,104 @@
 # Go developer diary
 
-Публічний щоденник вивчення Go розробником із C++ (backend, PostgreSQL, high-load).
-Записи ведуться українською. Мета: не «пройти курс», а за ~13 тижнів зробити
-три проєкти, що повторюють реальні робочі задачі (consumer метрик, outbox + Kafka,
-SMS/call gateway), і описати в щоденнику рішення, ADR, порівняння з C++ та діаграми.
+> Публічний щоденник переходу з C++ на Go: за 13 тижнів, з трьома реальними проєктами, ADR і діаграмами.
 
-Темп: **4–8 годин на тиждень**, база 5–6. Один спринт це один тиждень (понеділок – неділя).
-Якщо тиждень зірвався, пропущене не надолужується: воно стає бонусом, а план рухається далі.
+Я бекенд-розробник на C++ (PostgreSQL, high-load, e-commerce) і вивчаю Go на задачах, схожих на ті, що вирішую на роботі.
+Тому тут немає курсу «з нуля»: кожен проєкт повторює реальний сервіс, спочатку в наївному вигляді, потім з покращеннями.
+Усі рішення, помилки й порівняння з C++ я записую українською, щоб ці нотатки могли стати в пригоді іншим розробникам.
 
-## Структура плану
+Темп: 4–8 годин на тиждень. Один спринт це один тиждень. Якщо тиждень не склався, я не надолужую його: пропущене стає бонусом, а план іде далі.
 
-| Фаза | Тема | Тижні | Спринти | Дати | Обсяг |
-|---|---|---|---|---|---|
-| 1 | Основи Go та ідіоматичний Go | 1–2 | 1–2 | 19.10 – 01.11 | ~10–15 год |
-| 2 | Конкурентність | 3–4 | 3–4 | 02.11 – 15.11 | ~10 год |
-| 3 | Проєкт 1: Metrics consumer | 5–7 | 5–7 | 16.11 – 06.12 | ~15 год |
-| 4 | Проєкт 2: Outbox + Kafka | 8–10 | 8–10 | 07.12 – 27.12 | ~15 год |
-| 5 | Проєкт 3: SMS/call gateway workers | 11–13 | 11–13 | 28.12 – 17.01 | ~15 год |
+## План
 
-Після фази 5 йдуть проєкти 4–5 (кеш, шардінг, розподілені блокування) разом із другом.
-Дати орієнтовні: вони зсуваються, якщо тиждень пропущено.
+| Фаза | Що роблю | Спринти | Дати | Результат |
+|---|---|---|---|---|
+| **1. Основи Go** | Мова, інтерфейси, помилки, тести, CLI | 1–2 | 19.10 – 01.11 | CLI-утиліта `logstat` з тестами |
+| **2. Конкурентність** | Goroutines, channels, `context`, `errgroup` | 3–4 | 02.11 – 15.11 | Worker pool без data race |
+| **3. Metrics consumer** | Kafka → ClickHouse | 5–7 | 16.11 – 06.12 | Go-сервіс, що замінює Python-консьюмер |
+| **4. Outbox + Kafka** | Transactional outbox на PostgreSQL | 8–10 | 07.12 – 27.12 | Продюсер з інтеграційними тестами |
+| **5. SMS/call gateway** | Worker-и, retry, rate limiting | 11–13 | 28.12 – 17.01 | Gateway з health-check і Dockerfile |
+
+Після п'ятої фази заплановано ще два проєкти (кеш, шардінг, розподілені блокування), які я хочу зробити разом із другом.
+Дати орієнтовні й зсуваються разом із пропущеними тижнями.
 
 ```mermaid
 gantt
-    title План вивчення Go (орієнтовні дати)
+    title Дорожня карта
     dateFormat YYYY-MM-DD
     axisFormat %d.%m
-    section Фаза 1: основи
-    Спринт 1 мова та інструменти :s1, 2026-10-19, 7d
-    Спринт 2 ідіоматичний Go     :s2, after s1, 7d
-    section Фаза 2: конкурентність
-    Спринт 3                       :s3, after s2, 7d
-    Спринт 4                       :s4, after s3, 7d
-    section Фаза 3: Metrics consumer
-    Спринти 5–7                    :p3, after s4, 21d
-    section Фаза 4: Outbox + Kafka
-    Спринти 8–10                   :p4, after p3, 21d
-    section Фаза 5: SMS/call gateway
-    Спринти 11–13                  :p5, after p4, 21d
+    section Основи
+    Спринти 1–2           :f1, 2026-10-19, 14d
+    section Конкурентність
+    Спринти 3–4           :f2, after f1, 14d
+    section Metrics consumer
+    Спринти 5–7           :f3, after f2, 21d
+    section Outbox + Kafka
+    Спринти 8–10          :f4, after f3, 21d
+    section SMS/call gateway
+    Спринти 11–13         :f5, after f4, 21d
 ```
 
-## Фаза 1. Основи Go (спринти 1–2)
+## Фаза 1. Основи Go
 
-Epic [#1](https://github.com/AlexSol/go-developer-diary/issues/1) і [#2](https://github.com/AlexSol/go-developer-diary/issues/2). Зараз у роботі.
+Це поточна фаза. Задачі ведуться в [issues](https://github.com/AlexSol/go-developer-diary/issues): два епіки й десять задач, по одному pull request на кожну.
 
-### Спринт 1: мова та інструменти (19.10 – 25.10)
-- [ ] [#4](https://github.com/AlexSol/go-developer-diary/issues/4) A Tour of Go, вправи Exercism і конспект відмінностей від C++
-- [ ] [#5](https://github.com/AlexSol/go-developer-diary/issues/5) Slices, maps, strings: внутрішня будова й пастки
+**Спринт 1: мова та інструменти** (19.10 – 25.10), епік [#1](https://github.com/AlexSol/go-developer-diary/issues/1)
+
+- [ ] [#4](https://github.com/AlexSol/go-developer-diary/issues/4) A Tour of Go, вправи Exercism, конспект відмінностей від C++
+- [ ] [#5](https://github.com/AlexSol/go-developer-diary/issues/5) Slices, maps, strings: як вони влаштовані й де підводять
 - [ ] [#6](https://github.com/AlexSol/go-developer-diary/issues/6) Методи, інтерфейси, embedding
-- [ ] [#7](https://github.com/AlexSol/go-developer-diary/issues/7) Запис у щоденник №1 і ретро спринту
+- [ ] [#7](https://github.com/AlexSol/go-developer-diary/issues/7) Перший запис у щоденнику й ретро спринту
 
-### Спринт 2: ідіоматичний Go (26.10 – 01.11)
-- [ ] [#8](https://github.com/AlexSol/go-developer-diary/issues/8) Помилки: wrapping, `Is`/`As`, sentinel errors
-- [ ] [#9](https://github.com/AlexSol/go-developer-diary/issues/9) `defer`, `panic`, `recover` проти RAII
-- [ ] [#10](https://github.com/AlexSol/go-developer-diary/issues/10) Тестування: table-driven, benchmarks, coverage, перший CI
+**Спринт 2: ідіоматичний Go** (26.10 – 01.11), епік [#2](https://github.com/AlexSol/go-developer-diary/issues/2)
+
+- [ ] [#8](https://github.com/AlexSol/go-developer-diary/issues/8) Помилки: wrapping, `errors.Is` і `errors.As`
+- [ ] [#9](https://github.com/AlexSol/go-developer-diary/issues/9) `defer`, `panic` і `recover` проти RAII
+- [ ] [#10](https://github.com/AlexSol/go-developer-diary/issues/10) Тестування, бенчмарки, перший CI
 - [ ] [#11](https://github.com/AlexSol/go-developer-diary/issues/11) Міні-проєкт: CLI-парсер логів `logstat`
-- [ ] [#12](https://github.com/AlexSol/go-developer-diary/issues/12) Лінтери, pprof, щоденник №2 і ретро фази 1
+- [ ] [#12](https://github.com/AlexSol/go-developer-diary/issues/12) Лінтери, pprof, другий запис і ретро фази
 
-**Мінімум фази:** невеликий CLI з тестами (`logstat`). **Бонус:** `golangci-lint`, перший `pprof`.
+## Що буде далі
 
-## Фаза 2. Конкурентність (спринти 3–4, 02.11 – 15.11)
+Issues для наступних фаз я створюю перед їх початком, а розбиття на спринти уточнюю за підсумками ретро.
 
-Заплановано. Issues зʼявляться перед початком фази.
+### Фаза 2. Конкурентність (02.11 – 15.11)
 
-- Теми: goroutines, channels, `select`, `sync`, `context`, `errgroup`, race detector.
-- **Мінімум:** worker pool із graceful shutdown.
-- **Бонус:** pipeline з backpressure і розбір типових помилок (goroutine leaks, deadlock).
-- Спринт 3 (02.11 – 08.11): goroutines, channels, `select`, `sync`.
-- Спринт 4 (09.11 – 15.11): `context`, `errgroup`, worker pool, race detector.
+Спринт 3 присвячений goroutines, channels, `select` і `sync`. У спринті 4 розбираю `context`, `errgroup`, race detector і збираю worker pool із graceful shutdown.
+За бажання додам pipeline з backpressure та розбір типових помилок: goroutine leaks і deadlock.
 
-## Фаза 3. Проєкт 1: Metrics consumer (спринти 5–7, 16.11 – 06.12)
+### Фаза 3. Metrics consumer (16.11 – 06.12)
 
-Заплановано.
+Перепишу Python-консьюмер метрик на Go: Kafka → ClickHouse. У спринті 5 зроблю наївну версію, у спринті 6 додам батчинг, offsets і retry з backoff, у спринті 7 метрики для Prometheus, `slog` і порівняння з Python-версією.
+Бонус: `pprof` та idempotency.
 
-- Kafka → ClickHouse: спочатку наївна версія, потім батчинг, offsets, retry/backoff.
-- **Мінімум:** працюючий consumer, метрики через Prometheus, `slog`.
-- **Бонус:** бенчмарк проти Python-версії, `pprof`, idempotency.
-- Спринт 5 (16.11 – 22.11): наївна версія. Спринт 6 (23.11 – 29.11): батчинг, offsets, retry/backoff. Спринт 7 (30.11 – 06.12): метрики, `slog`, бенчмарки.
+### Фаза 4. Outbox + Kafka (07.12 – 27.12)
 
-## Фаза 4. Проєкт 2: Outbox + Kafka (спринти 8–10, 07.12 – 27.12)
+Transactional outbox на PostgreSQL (`pgx`). Спринт 8 це схема й polling, спринт 9 продюсер і дедуплікація на консьюмері, спринт 10 інтеграційні тести на `testcontainers-go`.
+Бонус: OpenTelemetry-трейси через Kafka.
 
-Заплановано.
+### Фаза 5. SMS/call gateway (28.12 – 17.01)
 
-- Transactional outbox на PostgreSQL (`pgx`), продюсер, дедуплікація на консьюмері.
-- **Мінімум:** outbox polling і продюсер з інтеграційним тестом (`testcontainers-go`).
-- **Бонус:** OpenTelemetry-трейси через Kafka.
-- Спринт 8 (07.12 – 13.12): схема outbox і polling. Спринт 9 (14.12 – 20.12): продюсер і дедуплікація. Спринт 10 (21.12 – 27.12): інтеграційні тести й бонуси.
+Воркери, що ходять до зовнішніх провайдерів. Спринт 11: HTTP-клієнти з таймаутами та retry. Спринт 12: worker pool, черга задач, rate limiting і circuit breaker. Спринт 13: health-check, Dockerfile, конфігурація.
+Бонус: CI і graceful shutdown під навантаженням.
 
-## Фаза 5. Проєкт 3: SMS/call gateway workers (спринти 11–13, 28.12 – 17.01)
+## Як я працюю
 
-Заплановано.
-
-- HTTP-клієнти до провайдерів: таймаути, retry, rate limiting, circuit breaker.
-- **Мінімум:** worker pool + черга задач + health-check + Dockerfile.
-- **Бонус:** CI, конфігурація, graceful shutdown під навантаженням.
-- Спринт 11 (28.12 – 03.01): HTTP-клієнти й retry. Спринт 12 (04.01 – 10.01): worker pool, черга, rate limiting, circuit breaker. Спринт 13 (11.01 – 17.01): health-check, Dockerfile, конфігурація.
-
-Розбиття фаз 2–5 на спринти орієнтовне, воно уточнюється перед кожною фазою за підсумками ретро.
-
-## Контрольні точки
-
-- Кінець тижня 2: пишеш ідіоматичний Go без підказок.
-- Кінець тижня 4: можеш написати конкурентну програму без data race.
-- Кінець тижня 7: перший Go-сервіс, що замінює Python-консьюмер.
-- Кінець тижня 13: три проєкти в щоденнику, готові до публікації.
-
-## Як працює процес
-
-1. **Задачі це GitHub issues.** Епік це issue з sub-issues, спринт це milestone, фаза це label (`phase-1` тощо).
-2. Для кожної задачі: `gh issue develop <N> --checkout`, робота в гілці, PR як **Draft**.
-3. В описі PR: `Closes #<N>` і чекліст Definition of Done зі шаблону.
-4. Коли готово, PR переводиться в **Ready for review**. Його читають два ревʼюери:
-   GitHub Copilot (швидкий перший прохід) і агент Claude (DoD, перевірки, питання на розуміння).
-5. Після виправлень і ✅ PR мерджиться, issue закривається автоматично.
-6. Наприкінці спринту ретро записується коментарем в останній issue спринту.
-
-Деталі налаштування ревʼюерів: [docs/reviewer-setup.md](docs/reviewer-setup.md).
+Кожна задача це GitHub issue. Я створюю гілку командою `gh issue develop <N> --checkout`, відкриваю Draft PR із `Closes #<N>` і заповнюю чекліст Definition of Done.
+Коли робота готова, переводжу PR у Ready for review. Його переглядають двоє: GitHub Copilot робить швидкий перший прохід, а агент на базі Claude перевіряє DoD, запускає тести й ставить питання на розуміння. Після виправлень PR мерджиться, а issue закривається автоматично.
+Налаштування ревʼюерів описано в [docs/reviewer-setup.md](docs/reviewer-setup.md).
 
 ## Структура репозиторію
 
-| Каталог | Призначення |
+| Шлях | Що там |
 |---|---|
 | `exercises/` | Навчальні вправи фази 1 |
-| `docs/` | Конспекти (наприклад, `cpp-vs-go.md`), результати бенчмарків |
+| `docs/` | Конспекти (наприклад, `cpp-vs-go.md`) і результати бенчмарків |
 | `docs/diary/` | Записи щоденника |
-| `cmd/`, `internal/` | Зʼявляться з першої програми (`logstat`, спринт 2) |
+| `cmd/`, `internal/` | Зʼявляться з першою програмою (`logstat`, спринт 2) |
 | `.github/` | Workflows ревʼюерів, правила ревʼю, шаблон PR |
 
 ## Щоденник
 
-Записи зʼявляться тут по мірі виконання плану.
+Записів поки немає. Перший очікується наприкінці спринту 1.
 
 <!-- diary-index -->
