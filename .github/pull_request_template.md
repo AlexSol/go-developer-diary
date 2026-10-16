@@ -27,8 +27,8 @@ Closes #N  <!-- номер issue: GitHub закриє її автоматичн�
 <!-- скопіюй чекліст зі своєї issue. Галочку став тільки якщо є доказ у цьому PR -->
 
 - [ ] Гілку створено від issue (`gh issue develop N --checkout`)
-- [ ] `gofmt`, `go vet`, `golangci-lint` без помилок
-- [ ] `go test -race ./...` проходить
+- [ ] `gofmt` і `go vet` без помилок
+- [ ] `go test ./...` проходить
 - [ ] 
 - [ ] 
 
